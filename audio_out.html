@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Translation</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="../static/audio.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Roboto&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/872673ab28.js" crossorigin="anonymous"></script>
+    <link rel="icon" href="../static/img/favicon_1.ico">
+    <style>
+        /* Add this new style for the button container */
+        .top-right-buttons {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .top-right-buttons .link-tag {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        .top-right-buttons .link-tag:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav_head">  
+        <div class="nav_title">
+            <h1>Realtime Sign Language Translator</h1>
+        </div>
+        <!-- Moved buttons to top-right corner -->
+        <div class="top-right-buttons">
+            <a class="link-tag" id="profile_page" href='./profile'>
+                <i class="fas fa-user"></i> Profile
+            </a>
+            <a class="link-tag" href="/home">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+    </div>
+
+    <!-- Rest of your existing code remains exactly the same -->
+    <div class="audio-container">
+        <h1 class="audio-title">Voice to Sign Language Translation</h1>
+        
+        <div class="audio-controls">
+            <div class="mic-container">
+                <button id="record-btn" class="mic-button">
+                    <i class="fas fa-microphone"></i>
+                    <span id="status-text">Click to Start Recording</span>
+                </button>
+                <div class="action-buttons">
+                    <button id="clear-btn" class="action-btn clear-btn">
+                        <i class="fas fa-eraser"></i> Clear
+                    </button>
+                    <a href="/home" class="action-btn stop-btn">
+                        <i class="fas fa-stop"></i> Stop Translation
+                    </a>
+                </div>
+            </div>
+
+            <div class="translation-result">
+                <div class="result-header">
+                    <h3>Translation Output</h3>
+                    <div class="recording-indicator" id="recording-indicator">
+                        <span class="pulse"></span>
+                        <span>Recording...</span>
+                    </div>
+                </div>
+                <div class="message-box">
+                    <p id="translation-output">Press the microphone button to start speaking</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p id="copyrights"></p>
+    </footer>
+
+    <script>
+        document.getElementById("copyrights").innerHTML = "Copyright © " + new Date().getFullYear();
+    
+        const recordBtn = document.getElementById('record-btn');
+        const statusText = document.getElementById('status-text');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const translationOutput = document.getElementById('translation-output');
+        const clearBtn = document.getElementById('clear-btn');
+        
+        let recognition;
+        let isRecording = false;
+        let finalTranscript = '';
+    
+        // Check for browser support
+        function checkCompatibility() {
+            if (!('webkitSpeechRecognition' in window)) {
+                translationOutput.textContent = "Speech recognition is not supported in your browser. Please use Chrome or Edge.";
+                recordBtn.disabled = true;
+                return false;
+            }
+            return true;
+        }
+    
+        function initSpeechRecognition() {
+            try {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                recognition.maxAlternatives = 1;
+    
+                recognition.onstart = () => {
+                    isRecording = true;
+                    finalTranscript = '';
+                    statusText.textContent = "Listening...";
+                    recordingIndicator.style.display = 'flex';
+                    recordBtn.classList.add('recording');
+                    translationOutput.textContent = "Listening... Speak now.";
+                };
+    
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+    
+                    // Display both interim and final results
+                    translationOutput.innerHTML = finalTranscript + '<span style="color:#777">' + interimTranscript + '</span>';
+                };
+    
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    
+                    let errorMessage = "Error: ";
+                    switch(event.error) {
+                        case 'no-speech':
+                            errorMessage = "No speech detected. Please speak louder or move closer to the microphone.";
+                            break;
+                        case 'audio-capture':
+                            errorMessage = "No microphone found. Please check your microphone connection.";
+                            break;
+                        case 'not-allowed':
+                            errorMessage = "Microphone access denied. Please allow microphone permissions.";
+                            // Show instructions for enabling microphone
+                            showPermissionInstructions();
+                            break;
+                        case 'network':
+                            errorMessage = "Network error. Please check your internet connection.";
+                            break;
+                        default:
+                            errorMessage += event.error;
+                    }
+                    
+                    translationOutput.textContent = errorMessage;
+                    stopRecording();
+                };
+    
+                recognition.onend = () => {
+                    if (isRecording) {
+                        // Auto-restart if we're still supposed to be recording
+                        try {
+                            recognition.start();
+                        } catch (err) {
+                            console.error("Error restarting recognition:", err);
+                            stopRecording();
+                        }
+                    }
+                };
+                
+                return true;
+            } catch (err) {
+                console.error("Initialization error:", err);
+                translationOutput.textContent = "Failed to initialize speech recognition.";
+                return false;
+            }
+        }
+    
+        function showPermissionInstructions() {
+            const instructions = `
+                <div class="permission-instructions">
+                    <h4>To enable microphone access:</h4>
+                    <ol>
+                        <li>Click the lock icon in your browser's address bar</li>
+                        <li>Find "Microphone" in the permissions list</li>
+                        <li>Change it from "Block" to "Allow"</li>
+                        <li>Refresh this page</li>
+                    </ol>
+                </div>
+            `;
+            translationOutput.innerHTML = instructions;
+        }
+    
+        function startRecording() {
+            if (!checkCompatibility()) return;
+            
+            if (!recognition && !initSpeechRecognition()) {
+                return;
+            }
+            
+            try {
+                // Request microphone permission first
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(() => {
+                        recognition.start();
+                        translationOutput.textContent = "Initializing... Please speak clearly.";
+                    })
+                    .catch(err => {
+                        console.error("Microphone access error:", err);
+                        translationOutput.textContent = "Cannot access microphone. Please check permissions.";
+                        showPermissionInstructions();
+                    });
+            } catch (err) {
+                console.error("Start recording error:", err);
+                translationOutput.textContent = "Error starting recording. Please try again.";
+            }
+        }
+    
+        function stopRecording() {
+            isRecording = false;
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (err) {
+                    console.error("Error stopping recognition:", err);
+                }
+            }
+            statusText.textContent = "Click to Start Recording";
+            recordingIndicator.style.display = 'none';
+            recordBtn.classList.remove('recording');
+        }
+    
+        function clearText() {
+            finalTranscript = '';
+            translationOutput.textContent = "Press the microphone button to start speaking";
+        }
+    
+        // Event listeners
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+    
+        clearBtn.addEventListener('click', clearText);
+    
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            recordingIndicator.style.display = 'none';
+            
+            // Pre-check microphone permission
+            if (navigator.permissions) {
+                navigator.permissions.query({name: 'microphone'})
+                    .then(permissionStatus => {
+                        permissionStatus.onchange = () => {
+                            console.log("Microphone permission state changed to:", permissionStatus.state);
+                        };
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
