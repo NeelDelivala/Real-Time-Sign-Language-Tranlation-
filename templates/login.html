@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/872673ab28.js" crossorigin="anonymous"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../static/index.css">
+    <link rel="stylesheet" href="../static/signup.css">
+    <link rel="shortcut icon" href="../static/img/favicon_1.ico" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <div class="nav_head" style="background: rgba(255,255,255,0.8);">
+        <div class="nav_title">
+            <h1 style="font-weight: 600; margin-top:25px;">Realtime Sign Language Translator</h1>
+        </div>
+        <div class="icons">
+            <ul class="header-list">
+                <li class="header-list-elements">
+                    <!--  <a class="link-tag" href="https://github.com/Deva0813/Realtime-Communication-System" target="_blank"> 
+                        <i class="fa-brands fa-github"></i>-->
+                    </a>
+                </li>
+            </ul>        
+        </div>
+    </div>
+
+    <!-- Login Form Container -->
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-5 col-md-8 mx-auto shadow rounded-5">
+                <!-- Login Form -->
+                <form id="loginForm" action="/validate" method="post">
+                    <h2 class="text-center fw-bold mb-3 p-2">Log in</h2>
+                    <div id="form_alerts"></div>
+                    <div class="form-group mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" id="email" name="email" class="form-control" 
+                               placeholder="Enter your email address" value="{{email if email}}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="password" class="form-control" 
+                               placeholder="Enter your password" required>
+                    </div>
+                    <div style="text-align:center; font-size:15px;">
+                        <br><button class="an" type="submit">Login</button><br><br>
+                       <!-- Forgot Password? <a href="#" onclick="showForgotPassword()">Click here</a><br>
+                        Don't have an account? <a href="/signup">Sign Up</a>-->
+                    </div>
+                </form>
+                
+                <!-- Forgot Password Form (Initially Hidden) -->
+             <!--   <form id="forgotPasswordForm" action="/forgotpass" method="post" style="display:none;">
+                    <h2 class="text-center fw-bold mb-3 p-2">Password Request</h2>
+                    <div id="form_alert"></div><br>
+                    <label for="f_email" class="form-label">Email</label>
+                    <input type="email" id="f_email" name="f_email" class="form-control" 
+                           placeholder="Enter your email address" value="{{email if email}}" required>
+                    <div style="text-align:center; font-size:15px;">
+                        <br><button class="an" type="submit">Request</button><br><br>
+                        Back to Login <a href="#" onclick="showLoginForm()">Click here</a>
+                    </div>
+                </form> -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p id="copyrights" style="color: #fff; font-size:20px; text-align:center;"></p>
+    </footer>
+
+    <script>
+        // Set copyright year
+        document.getElementById("copyrights").innerHTML = "Copyright © " + new Date().getFullYear();
+
+        // Form visibility functions
+        function showForgotPassword() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('forgotPasswordForm').style.display = 'block';
+        }
+
+        function showLoginForm() {
+            document.getElementById('forgotPasswordForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        // Handle response messages
+        $(document).ready(function() {
+            // For login responses
+            if ("{{accept}}" == "success") {
+                $("#form_alerts").html('<div class="alert alert-success">Login successful. Redirecting...</div>');
+                storeUserInfo();
+                setTimeout(function() {
+                    window.location.href = "/home";
+                }, 1000);
+            } else if ("{{accept}}" == "failed") {
+                $("#form_alerts").html('<div class="alert alert-danger">Invalid email or password</div>');
+            }
+
+            // For forgot password responses
+            if ("{{accept}}" == "sent") {
+                $("#form_alert").html('<div class="alert alert-success">Password reset sent to your email.</div>');
+                setTimeout(function() {
+                    window.location.href = "/";
+                }, 2000);
+            } else if ("{{accept}}" == "not") {
+                $("#form_alert").html('<div class="alert alert-danger">Account not found</div>');
+            }
+        });
+
+        // Store user info in localStorage
+        function storeUserInfo() {
+            const userInfo = {
+                name: "{{userinfo['name'] if userinfo}}",
+                email: "{{userinfo['email'] if userinfo}}",
+                role: "{{userinfo['role'] if userinfo}}",
+                disability: "{{userinfo['disability'] if userinfo}}",
+                dob: "{{userinfo['dob'] if userinfo}}",
+                slink: "{{userinfo['slink'] if userinfo}}",
+                glink: "{{userinfo['glink'] if userinfo}}",
+                llink: "{{userinfo['llink'] if userinfo}}",
+                bio: "{{userinfo['bio'] if userinfo}}",
+                gender: "{{userinfo['gender'] if userinfo}}"
+            };
+            
+            if (userInfo.email) {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('user', JSON.stringify(userInfo));
+            }
+        }
+    </script>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
